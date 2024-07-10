@@ -1,9 +1,11 @@
 from typing import Literal
+import os
 
 import tensorflow as tf
 import cv2
 
-from keras.utils import image_dataset_from_directory
+from keras.models import load_model, save_model
+from keras.utils import image_dataset_from_directory, load_img, img_to_array
 from keras import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Dense, Rescaling, RandomZoom, \
     RandomFlip, RandomRotation
@@ -16,6 +18,7 @@ from keras.losses import SparseCategoricalCrossentropy
 # from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 # %%
 
@@ -79,6 +82,12 @@ model = Sequential([
 
     Rescaling(1.0 / 255),
 
+    Conv2D(4, 3, padding='same', activation='relu'),
+    MaxPooling2D(),
+
+    Conv2D(8, 3, padding='same', activation='relu'),
+    MaxPooling2D(),
+
     Conv2D(16, 3, padding='same', activation='relu'),
     MaxPooling2D(),
 
@@ -86,9 +95,10 @@ model = Sequential([
     MaxPooling2D(),
 
     Conv2D(64, 3, padding='same', activation='relu'),
+    BatchNormalization(),
     MaxPooling2D(),
 
-    Dropout(0.2),
+    Dropout(0.15),
 
     Flatten(),
 
@@ -97,6 +107,7 @@ model = Sequential([
     Dense(32, activation='relu'),
     Dense(16, activation='relu'),
     Dense(8, activation='relu'),
+    Dense(4, activation='relu'),
     Dense(len(class_names)),
 ])
 
@@ -106,9 +117,25 @@ model.compile(
     metrics=[SparseCategoricalAccuracy()]
 )
 
-history = model.fit(train, validation_data=validation, epochs=3, batch_size=32, workers=-1, use_multiprocessing=True,
-                    validation_batch_size=16)
+history = model.fit(train, validation_data=validation, epochs=2, batch_size=32, workers=-1, use_multiprocessing=True,
+                    validation_batch_size=batch_size)
 
 history = history.history
+model.save('gender_detection_90plus.keras')
 # %%
-model.save('gender_detection_90plus')
+
+model = Sequential()
+if os.path.exists('gender_detection_90plus.keras'):
+    model = load_model('gender_detection_90plus', compile=True)
+
+# %%
+
+test_path = r"C:\Users\vicky\Downloads\male5.jpeg"
+
+test_img = load_img(test_path, target_size=image_size)
+test_img = img_to_array(test_img)
+test_img = tf.expand_dims(test_img, 0)
+predictions = tf.nn.softmax(model.predict(test_img))
+print(predictions)
+print(class_names)
+print(class_names[np.argmax(predictions)])
