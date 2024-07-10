@@ -1,17 +1,32 @@
 import cv2
 import numpy as np
-import ultralytics
+import tensorflow as tf
+from ultralytics import YOLO
+
+from GenderDetection import GenderDetection
 
 # %%
 
-vid = cv2.VideoCapture(0)
-while (True):
-    ret, frame = vid.read()
-    haar_cascade = cv2.CascadeClassifier(r"C:\Users\vicky\Downloads\haarcascade_frontalface_default.xml")
-    faces = haar_cascade.detectMultiScale(frame, 1.005, 6)
+yolo = YOLO(r"C:\Users\vicky\Downloads\yolov8x-oiv7.pt")
+gender_model = GenderDetection()
 
-    for (x, y, w, h) in faces:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+# %%
+vid = cv2.VideoCapture(0)
+while True:
+    ret, frame = vid.read()
+    results = yolo.predict(source=np.array(frame), classes=264)
+
+    if len(results[0].boxes.cls) != 0:
+        for result in results:
+            x, y, w, h = result.boxes.xywh[0].int().cpu().numpy()
+            x -= 75
+            y -= 100
+            w += 25
+            h += 20
+
+            gender_prediction = gender_model.predict_numpy(frame[x:(x + w), y:(y + h)], print_output=False, cv=False)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(frame, gender_prediction.upper(), (x, y + 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 1)
 
     cv2.imshow('Faces', frame)
 
@@ -19,3 +34,4 @@ while (True):
         break
 vid.release()
 cv2.destroyAllWindows()
+# %%
