@@ -16,17 +16,20 @@ from keras.losses import SparseCategoricalCrossentropy
 import matplotlib.pyplot as plt
 import numpy as np
 
+import os
+
 
 class GenderDetection:
-    def __init__(self):
+    def __init__(self, img_size: tuple[int, int] = (256, 256), b_size: int = 32, v_split: float = 0.15,
+                 force_train: bool = False):
         self.history = None
         self.model = None
         self.data_augmentation = None
         self.model_path = "models/gender_detection_90plus.keras"
 
-        self.image_size = (256, 256)
-        self.batch_size = 32
-        self.validation_split = 0.15
+        self.image_size = img_size
+        self.batch_size = b_size
+        self.validation_split = v_split
 
         self.parent_path = r"S:\Dataset\Computer Vision Project\Gender Detection Dataset\Dataset"
 
@@ -38,13 +41,11 @@ class GenderDetection:
 
         self.class_names = self.train.class_names
 
-        self.load()
+        self.load(force_train)
 
-    def load(self):
+    def load(self, force_train: bool = False):
         self.model = Sequential()
-        if os.path.exists(self.model_path):
-            self.model = load_model(self.model_path, compile=True)
-        else:
+        if force_train or not os.path.exists(self.model_path):
             self.data_augmentation = Sequential([
                 RandomFlip('horizontal', input_shape=self.image_size + (3,)),
                 RandomZoom(0.1),
@@ -97,6 +98,8 @@ class GenderDetection:
 
             self.history = history.history
             self.model.save(self.model_path)
+        elif os.path.exists(self.model_path) or not force_train:
+            self.model = load_model(self.model_path, compile=True)
 
     def visualize_classes(self, which_split: Literal['train', 'validation'] = 'train', img_count: int = 9) -> None:
         __data__ = (self.train, self.validation)[which_split == 'validation']
@@ -160,3 +163,22 @@ class GenderDetection:
 
     def get_model_path(self) -> str:
         return self.model_path
+
+    def get_distribution(self, visualize: bool = False):
+        gender_folder = ['Female', 'Male']
+        counts = []
+        for gender in gender_folder:
+            counts.append(len(os.listdir(os.path.join(self.parent_path, gender))))
+
+        if visualize:
+            plt.pie(counts, labels=gender_folder)
+            plt.legend()
+            plt.title('Class Distribution')
+            plt.tight_layout()
+            plt.show()
+        else:
+            print(f"{'=' * 15} Class Distribution {'=' * 15}")
+            print("Classes Found: ")
+            print(*self.class_names, sep=' , ')
+            print("Male:", counts[1], f"({(counts[1] / np.sum(counts)) * 100:.2f}%)")
+            print("Female:", counts[0], f"({(counts[0] / np.sum(counts)) * 100:.2f}%)")
