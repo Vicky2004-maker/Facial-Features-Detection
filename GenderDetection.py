@@ -25,7 +25,7 @@ class GenderDetection:
         self.history = None
         self.model = None
         self.data_augmentation = None
-        self.model_path = "models/gender_detection_90plus.keras"
+        self.model_path = "models/gender_detection_balanced.keras"
 
         self.image_size = img_size
         self.batch_size = b_size
@@ -100,6 +100,9 @@ class GenderDetection:
             self.model.save(self.model_path)
         elif os.path.exists(self.model_path) or not force_train:
             self.model = load_model(self.model_path, compile=True)
+
+    def save_model(self):
+        self.model.save(self.model_path)
 
     def visualize_classes(self, which_split: Literal['train', 'validation'] = 'train', img_count: int = 9) -> None:
         __data__ = (self.train, self.validation)[which_split == 'validation']
