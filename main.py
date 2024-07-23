@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
-import tensorflow as tf
 from ultralytics import YOLO
 
-from GenderDetection import GenderDetection
+from helper import GenderDetection
 from cv2 import CascadeClassifier
 
 # %%
